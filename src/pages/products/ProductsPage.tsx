@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
+import { useCrud } from "@/hooks/use-crud";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { 
@@ -12,6 +12,16 @@ import {
   DialogTitle,
   DialogTrigger 
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Product } from "@/types";
@@ -26,11 +36,27 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
 
 export default function ProductsPage() {
-  const { toast } = useToast();
-  const [data, setData] = useState<Product[]>([...mockProducts]);
-  const [open, setOpen] = useState(false);
+  const {
+    data,
+    editItem,
+    deleteItem,
+    formOpen,
+    deleteDialogOpen,
+    handleAdd,
+    handleEdit,
+    handleDelete,
+    confirmDelete,
+    closeForm,
+    closeDeleteDialog,
+    saveItem,
+  } = useCrud<Product>({
+    items: mockProducts,
+    itemName: "Product",
+  });
+
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -41,6 +67,29 @@ export default function ProductsPage() {
     width: 0,
     links: "",
   });
+
+  // Initialize form data when editing an item
+  useEffect(() => {
+    if (editItem) {
+      setFormData({
+        name: editItem.name,
+        material: editItem.material,
+        thickness: editItem.thickness,
+        length: editItem.length,
+        width: editItem.width,
+        links: editItem.links,
+      });
+    } else {
+      setFormData({
+        name: "",
+        material: "",
+        thickness: 0,
+        length: 0,
+        width: 0,
+        links: "",
+      });
+    }
+  }, [editItem]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -58,8 +107,8 @@ export default function ProductsPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newProduct: Product = {
-      id: data.length > 0 ? Math.max(...data.map((item) => item.id)) + 1 : 1,
+    const productData: Product = {
+      id: editItem?.id || 0,
       name: formData.name || "",
       material: formData.material || "",
       thickness: formData.thickness || 0,
@@ -68,22 +117,7 @@ export default function ProductsPage() {
       links: formData.links || "",
     };
     
-    setData((prev) => [...prev, newProduct]);
-    setOpen(false);
-    toast({
-      title: "Product Created",
-      description: `${newProduct.name} has been added to the product catalog.`,
-    });
-    
-    // Reset form
-    setFormData({
-      name: "",
-      material: "",
-      thickness: 0,
-      length: 0,
-      width: 0,
-      links: "",
-    });
+    saveItem(productData);
   };
 
   const handleView = (product: Product) => {
@@ -126,10 +160,10 @@ export default function ProductsPage() {
             <Button variant="ghost" size="icon" onClick={() => handleView(product)}>
               <Eye className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => handleEdit(product)}>
               <Edit className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => handleDelete(product)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -150,18 +184,20 @@ export default function ProductsPage() {
       <DataTable
         columns={columns}
         data={data}
-        onAdd={() => setOpen(true)}
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
         searchField="name"
         searchPlaceholder="Search products..."
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={formOpen} onOpenChange={closeForm}>
         <DialogContent className="sm:max-w-[500px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
+              <DialogTitle>{editItem ? "Edit Product" : "Add New Product"}</DialogTitle>
               <DialogDescription>
-                Enter details for the new product.
+                Enter details for the {editItem ? "product" : "new product"}.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -251,7 +287,7 @@ export default function ProductsPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button type="button" variant="outline" onClick={closeForm}>
                 Cancel
               </Button>
               <Button type="submit">Save</Button>
@@ -259,6 +295,24 @@ export default function ProductsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={closeDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the product
+              {deleteItem && <strong> "{deleteItem.name}"</strong>} and remove it from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDeleteDialog}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="sm:max-w-[600px]">

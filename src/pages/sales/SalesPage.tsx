@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useCrud } from "@/hooks/use-crud";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { 
@@ -11,6 +11,16 @@ import {
   DialogHeader, 
   DialogTitle
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
@@ -30,9 +40,24 @@ import {
 } from "@/components/ui/select";
 
 export default function SalesPage() {
-  const { toast } = useToast();
-  const [data, setData] = useState<SalesOrder[]>([...mockSalesOrders]);
-  const [open, setOpen] = useState(false);
+  const {
+    data,
+    editItem,
+    deleteItem,
+    formOpen,
+    deleteDialogOpen,
+    handleAdd,
+    handleEdit,
+    handleDelete,
+    confirmDelete,
+    closeForm,
+    closeDeleteDialog,
+    saveItem,
+  } = useCrud<SalesOrder>({
+    items: mockSalesOrders,
+    itemName: "Sales Order",
+  });
+
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   
   const [formData, setFormData] = useState<Partial<SalesOrder>>({
@@ -43,6 +68,31 @@ export default function SalesPage() {
     unitPrice: 0,
     totalPrice: 0,
   });
+
+  // Initialize form data when editing an item
+  useEffect(() => {
+    if (editItem) {
+      setFormData({
+        clientName: editItem.clientName,
+        date: editItem.date,
+        productName: editItem.productName,
+        quantity: editItem.quantity,
+        unitPrice: editItem.unitPrice,
+        totalPrice: editItem.totalPrice,
+      });
+      setSelectedDate(new Date(editItem.date));
+    } else {
+      setFormData({
+        clientName: "",
+        date: format(new Date(), "yyyy-MM-dd"),
+        productName: "",
+        quantity: 1,
+        unitPrice: 0,
+        totalPrice: 0,
+      });
+      setSelectedDate(new Date());
+    }
+  }, [editItem]);
 
   // Update total price when quantity or unit price changes
   useEffect(() => {
@@ -67,8 +117,8 @@ export default function SalesPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newOrder: SalesOrder = {
-      id: data.length > 0 ? Math.max(...data.map((item) => item.id)) + 1 : 1,
+    const salesData: SalesOrder = {
+      id: editItem?.id || 0,
       clientName: formData.clientName || "",
       date: format(selectedDate, "yyyy-MM-dd"),
       productName: formData.productName || "",
@@ -77,23 +127,7 @@ export default function SalesPage() {
       totalPrice: formData.totalPrice || 0,
     };
     
-    setData((prev) => [...prev, newOrder]);
-    setOpen(false);
-    toast({
-      title: "Sales Order Created",
-      description: `Order for ${newOrder.productName} has been added.`,
-    });
-    
-    // Reset form
-    setFormData({
-      clientName: "",
-      date: format(new Date(), "yyyy-MM-dd"),
-      productName: "",
-      quantity: 1,
-      unitPrice: 0,
-      totalPrice: 0,
-    });
-    setSelectedDate(new Date());
+    saveItem(salesData);
   };
 
   const columns: ColumnDef<SalesOrder>[] = [
@@ -120,22 +154,29 @@ export default function SalesPage() {
     {
       accessorKey: "unitPrice",
       header: "Unit Price",
-      cell: ({ row }) => <div>${row.getValue("unitPrice").toFixed(2)}</div>,
+      cell: ({ row }) => {
+        const value = row.getValue("unitPrice");
+        return <div>${typeof value === "number" ? value.toFixed(2) : "0.00"}</div>;
+      },
     },
     {
       accessorKey: "totalPrice",
       header: "Total Price",
-      cell: ({ row }) => <div>${row.getValue("totalPrice").toFixed(2)}</div>,
+      cell: ({ row }) => {
+        const value = row.getValue("totalPrice");
+        return <div>${typeof value === "number" ? value.toFixed(2) : "0.00"}</div>;
+      },
     },
     {
       id: "actions",
       cell: ({ row }) => {
+        const order = row.original;
         return (
           <div className="flex space-x-2">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => handleEdit(order)}>
               <Edit className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => handleDelete(order)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -156,18 +197,20 @@ export default function SalesPage() {
       <DataTable
         columns={columns}
         data={data}
-        onAdd={() => setOpen(true)}
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
         searchField="clientName"
         searchPlaceholder="Search by client..."
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={formOpen} onOpenChange={closeForm}>
         <DialogContent className="sm:max-w-[500px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Add New Sales Order</DialogTitle>
+              <DialogTitle>{editItem ? "Edit Sales Order" : "Add New Sales Order"}</DialogTitle>
               <DialogDescription>
-                Enter details for the new sales order.
+                Enter details for the {editItem ? "sales order" : "new sales order"}.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -219,6 +262,7 @@ export default function SalesPage() {
                   Product
                 </Label>
                 <Select 
+                  value={formData.productName}
                   onValueChange={(value) => 
                     setFormData(prev => ({ ...prev, productName: value }))
                   }
@@ -284,7 +328,7 @@ export default function SalesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button type="button" variant="outline" onClick={closeForm}>
                 Cancel
               </Button>
               <Button type="submit">Save</Button>
@@ -292,6 +336,24 @@ export default function SalesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={closeDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the sales order
+              {deleteItem && <strong> for "{deleteItem.productName}"</strong>} and remove it from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDeleteDialog}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

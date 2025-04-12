@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+import { useCrud } from "@/hooks/use-crud";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { 
@@ -11,6 +11,16 @@ import {
   DialogHeader, 
   DialogTitle
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
@@ -23,9 +33,24 @@ import { CalendarIcon, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function PurchasePage() {
-  const { toast } = useToast();
-  const [data, setData] = useState<PurchaseOrder[]>([...mockPurchaseOrders]);
-  const [open, setOpen] = useState(false);
+  const {
+    data,
+    editItem,
+    deleteItem,
+    formOpen,
+    deleteDialogOpen,
+    handleAdd,
+    handleEdit,
+    handleDelete,
+    confirmDelete,
+    closeForm,
+    closeDeleteDialog,
+    saveItem,
+  } = useCrud<PurchaseOrder>({
+    items: mockPurchaseOrders,
+    itemName: "Purchase Order",
+  });
+
   const [formData, setFormData] = useState<Partial<PurchaseOrder>>({
     supplierName: "",
     date: format(new Date(), "yyyy-MM-dd"),
@@ -34,6 +59,29 @@ export default function PurchasePage() {
     totalCost: 0,
   });
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+  // Initialize form data when editing an item
+  useEffect(() => {
+    if (editItem) {
+      setFormData({
+        supplierName: editItem.supplierName,
+        date: editItem.date,
+        productName: editItem.productName,
+        unitCost: editItem.unitCost,
+        totalCost: editItem.totalCost,
+      });
+      setSelectedDate(new Date(editItem.date));
+    } else {
+      setFormData({
+        supplierName: "",
+        date: format(new Date(), "yyyy-MM-dd"),
+        productName: "",
+        unitCost: 0,
+        totalCost: 0,
+      });
+      setSelectedDate(new Date());
+    }
+  }, [editItem]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -46,8 +94,8 @@ export default function PurchasePage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newOrder: PurchaseOrder = {
-      id: data.length > 0 ? Math.max(...data.map((item) => item.id)) + 1 : 1,
+    const purchaseData: PurchaseOrder = {
+      id: editItem?.id || 0,
       supplierName: formData.supplierName || "",
       date: format(selectedDate, "yyyy-MM-dd"),
       productName: formData.productName || "",
@@ -55,22 +103,7 @@ export default function PurchasePage() {
       totalCost: formData.totalCost || 0,
     };
     
-    setData((prev) => [...prev, newOrder]);
-    setOpen(false);
-    toast({
-      title: "Purchase Order Created",
-      description: `Order for ${newOrder.productName} has been added.`,
-    });
-    
-    // Reset form
-    setFormData({
-      supplierName: "",
-      date: format(new Date(), "yyyy-MM-dd"),
-      productName: "",
-      unitCost: 0,
-      totalCost: 0,
-    });
-    setSelectedDate(new Date());
+    saveItem(purchaseData);
   };
 
   const columns: ColumnDef<PurchaseOrder>[] = [
@@ -92,22 +125,29 @@ export default function PurchasePage() {
     {
       accessorKey: "unitCost",
       header: "Unit Cost",
-      cell: ({ row }) => <div>${row.getValue("unitCost").toFixed(2)}</div>,
+      cell: ({ row }) => {
+        const value = row.getValue("unitCost");
+        return <div>${typeof value === "number" ? value.toFixed(2) : "0.00"}</div>;
+      },
     },
     {
       accessorKey: "totalCost",
       header: "Total Cost",
-      cell: ({ row }) => <div>${row.getValue("totalCost").toFixed(2)}</div>,
+      cell: ({ row }) => {
+        const value = row.getValue("totalCost");
+        return <div>${typeof value === "number" ? value.toFixed(2) : "0.00"}</div>;
+      },
     },
     {
       id: "actions",
       cell: ({ row }) => {
+        const order = row.original;
         return (
           <div className="flex space-x-2">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => handleEdit(order)}>
               <Edit className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => handleDelete(order)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -128,18 +168,20 @@ export default function PurchasePage() {
       <DataTable
         columns={columns}
         data={data}
-        onAdd={() => setOpen(true)}
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
         searchField="supplierName"
         searchPlaceholder="Search by supplier..."
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={formOpen} onOpenChange={closeForm}>
         <DialogContent className="sm:max-w-[500px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Add New Purchase Order</DialogTitle>
+              <DialogTitle>{editItem ? "Edit Purchase Order" : "Add New Purchase Order"}</DialogTitle>
               <DialogDescription>
-                Enter details for the new purchase order.
+                Enter details for the {editItem ? "purchase order" : "new purchase order"}.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -231,7 +273,7 @@ export default function PurchasePage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button type="button" variant="outline" onClick={closeForm}>
                 Cancel
               </Button>
               <Button type="submit">Save</Button>
@@ -239,6 +281,24 @@ export default function PurchasePage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={closeDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the purchase order
+              {deleteItem && <strong> for "{deleteItem.productName}"</strong>} and remove it from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDeleteDialog}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

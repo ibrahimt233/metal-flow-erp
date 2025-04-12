@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+import { useCrud } from "@/hooks/use-crud";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { 
@@ -11,6 +11,16 @@ import {
   DialogHeader, 
   DialogTitle
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
@@ -32,9 +42,25 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function ProductionPage() {
-  const { toast } = useToast();
-  const [data, setData] = useState<ProductionOrder[]>([...mockProductionOrders]);
-  const [open, setOpen] = useState(false);
+  const {
+    data,
+    setData,
+    editItem,
+    deleteItem,
+    formOpen,
+    deleteDialogOpen,
+    handleAdd,
+    handleEdit,
+    handleDelete,
+    confirmDelete,
+    closeForm,
+    closeDeleteDialog,
+    saveItem,
+  } = useCrud<ProductionOrder>({
+    items: mockProductionOrders,
+    itemName: "Production Order",
+  });
+
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [formData, setFormData] = useState<Partial<ProductionOrder>>({
@@ -46,14 +72,41 @@ export default function ProductionPage() {
     completed: false,
   });
 
+  // Initialize form data when editing an item
+  useEffect(() => {
+    if (editItem) {
+      setFormData({
+        purchaseOrderId: editItem.purchaseOrderId,
+        productId: editItem.productId,
+        productName: editItem.productName,
+        productionStart: editItem.productionStart,
+        productionEnd: editItem.productionEnd,
+        completed: editItem.completed,
+      });
+      setStartDate(new Date(editItem.productionStart));
+      setEndDate(new Date(editItem.productionEnd));
+    } else {
+      setFormData({
+        purchaseOrderId: undefined,
+        productId: 0,
+        productName: "",
+        productionStart: format(new Date(), "yyyy-MM-dd"),
+        productionEnd: format(new Date(), "yyyy-MM-dd"),
+        completed: false,
+      });
+      setStartDate(new Date());
+      setEndDate(new Date());
+    }
+  }, [editItem]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Find the product name based on the selected product ID
     const selectedProduct = mockProducts.find(p => p.id === formData.productId);
     
-    const newOrder: ProductionOrder = {
-      id: data.length > 0 ? Math.max(...data.map((item) => item.id)) + 1 : 1,
+    const orderData: ProductionOrder = {
+      id: editItem?.id || 0,
       purchaseOrderId: formData.purchaseOrderId,
       productId: formData.productId || 0,
       productName: selectedProduct?.name || "",
@@ -62,24 +115,14 @@ export default function ProductionPage() {
       completed: formData.completed || false,
     };
     
-    setData((prev) => [...prev, newOrder]);
-    setOpen(false);
-    toast({
-      title: "Production Order Created",
-      description: `Production order for ${newOrder.productName} has been added.`,
-    });
-    
-    // Reset form
-    setFormData({
-      purchaseOrderId: undefined,
-      productId: 0,
-      productName: "",
-      productionStart: format(new Date(), "yyyy-MM-dd"),
-      productionEnd: format(new Date(), "yyyy-MM-dd"),
-      completed: false,
-    });
-    setStartDate(new Date());
-    setEndDate(new Date());
+    saveItem(orderData);
+  };
+
+  const handleMarkComplete = (order: ProductionOrder) => {
+    const updatedData = data.map(item => 
+      item.id === order.id ? { ...item, completed: true } : item
+    );
+    setData(updatedData);
   };
 
   const columns: ColumnDef<ProductionOrder>[] = [
@@ -126,24 +169,15 @@ export default function ProductionPage() {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                onClick={() => {
-                  const updatedData = data.map(item => 
-                    item.id === order.id ? { ...item, completed: true } : item
-                  );
-                  setData(updatedData);
-                  toast({
-                    title: "Production Completed",
-                    description: `Production order for ${order.productName} marked as completed.`,
-                  });
-                }}
+                onClick={() => handleMarkComplete(order)}
               >
                 <Check className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => handleEdit(order)}>
               <Edit className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => handleDelete(order)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -164,18 +198,20 @@ export default function ProductionPage() {
       <DataTable
         columns={columns}
         data={data}
-        onAdd={() => setOpen(true)}
+        onAdd={handleAdd}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
         searchField="productName"
         searchPlaceholder="Search by product..."
       />
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={formOpen} onOpenChange={closeForm}>
         <DialogContent className="sm:max-w-[500px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Create Production Order</DialogTitle>
+              <DialogTitle>{editItem ? "Edit Production Order" : "Create Production Order"}</DialogTitle>
               <DialogDescription>
-                Enter details for the new production order.
+                Enter details for the {editItem ? "production order" : "new production order"}.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -184,6 +220,7 @@ export default function ProductionPage() {
                   Product
                 </Label>
                 <Select 
+                  value={formData.productId?.toString()}
                   onValueChange={(value) => 
                     setFormData(prev => ({ ...prev, productId: parseInt(value) }))
                   }
@@ -205,6 +242,7 @@ export default function ProductionPage() {
                   Purchase Order
                 </Label>
                 <Select 
+                  value={formData.purchaseOrderId?.toString() || "none"}
                   onValueChange={(value) => 
                     setFormData(prev => ({ 
                       ...prev, 
@@ -307,7 +345,7 @@ export default function ProductionPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button type="button" variant="outline" onClick={closeForm}>
                 Cancel
               </Button>
               <Button type="submit">Save</Button>
@@ -315,6 +353,24 @@ export default function ProductionPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={closeDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the production order
+              {deleteItem && <strong> for "{deleteItem.productName}"</strong>} and remove it from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={closeDeleteDialog}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -21,6 +21,8 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   onAdd?: () => void;
+  onEdit?: (row: TData) => void;
+  onDelete?: (row: TData) => void;
   searchField?: string;
   searchPlaceholder?: string;
 }
@@ -29,6 +31,8 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   onAdd,
+  onEdit,
+  onDelete,
   searchField,
   searchPlaceholder = "Search...",
 }: DataTableProps<TData, TValue>) {
@@ -47,6 +51,10 @@ export function DataTable<TData, TValue>({
     state: {
       sorting,
       columnFilters,
+    },
+    meta: {
+      onEdit,
+      onDelete,
     },
   });
 
