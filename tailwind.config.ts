@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,31 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Metal ERP specific colors
+				metal: {
+					50: '#f5f7fa',
+					100: '#e4e7eb',
+					200: '#cbd2d9',
+					300: '#9aa5b1',
+					400: '#7b8794',
+					500: '#616e7c',
+					600: '#52606e',
+					700: '#3e4c59',
+					800: '#323f4b',
+					900: '#1f2933',
+				},
+				steel: {
+					50: '#f5f9fc',
+					100: '#e0f1ff',
+					200: '#c0e0fa',
+					300: '#81bef1',
+					400: '#51a3e7',
+					500: '#2186db',
+					600: '#1669c4',
+					700: '#1255a1',
+					800: '#114584',
+					900: '#0f3a6d',
 				}
 			},
 			borderRadius: {
