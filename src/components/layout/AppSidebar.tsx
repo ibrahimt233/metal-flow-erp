@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { 
   CreditCard, 
@@ -52,7 +51,6 @@ const SidebarItem = ({ title, url, icon: Icon, isActive }: SidebarItemProps) => 
 export function AppSidebar() {
   const location = useLocation();
   
-  // Define main navigation items
   const mainItems = [
     {
       title: "Dashboard",
@@ -81,7 +79,6 @@ export function AppSidebar() {
     },
   ];
 
-  // Define secondary navigation items
   const secondaryItems = [
     {
       title: "Customers",
@@ -100,7 +97,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border/30 p-6">
         <div className="flex items-center gap-2 text-sidebar-foreground">
           <Package className="h-6 w-6" />
-          <span className="text-xl font-bold">MetalFlow</span>
+          <span className="text-xl font-bold">YourNewName</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="px-4 py-6">
