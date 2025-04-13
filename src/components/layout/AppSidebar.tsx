@@ -97,7 +97,7 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border/30 p-6">
         <div className="flex items-center gap-2 text-sidebar-foreground">
           <Package className="h-6 w-6" />
-          <span className="text-xl font-bold">YourNewName</span>
+          <span className="text-xl font-bold">MKMSolutions</span>
         </div>
       </SidebarHeader>
       <SidebarContent className="px-4 py-6">
