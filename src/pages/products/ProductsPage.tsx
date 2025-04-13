@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useCrud } from "@/hooks/use-crud";
 import { DataTable } from "@/components/ui/data-table";
@@ -55,6 +54,7 @@ export default function ProductsPage() {
   } = useCrud<Product>({
     items: mockProducts,
     itemName: "Product",
+    storageKey: "erp-products",
   });
 
   const [viewOpen, setViewOpen] = useState(false);
@@ -68,7 +68,6 @@ export default function ProductsPage() {
     links: "",
   });
 
-  // Initialize form data when editing an item
   useEffect(() => {
     if (editItem) {
       setFormData({

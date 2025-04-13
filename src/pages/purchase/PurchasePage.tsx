@@ -49,6 +49,7 @@ export default function PurchasePage() {
   } = useCrud<PurchaseOrder>({
     items: mockPurchaseOrders,
     itemName: "Purchase Order",
+    storageKey: "erp-purchases", // Add localStorage key
   });
 
   const [formData, setFormData] = useState<Partial<PurchaseOrder>>({

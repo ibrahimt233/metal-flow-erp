@@ -1,15 +1,18 @@
 
 import { useState } from "react";
 import { useToast } from "./use-toast";
+import { useLocalStorage } from "./use-local-storage";
 
 interface UseCrudOptions<T> {
   items: T[];
   itemName: string;
+  storageKey: string; // Add storageKey for localStorage
   onSuccess?: (action: 'create' | 'update' | 'delete', item: T) => void;
 }
 
-export function useCrud<T extends { id: number }>({ items, itemName, onSuccess }: UseCrudOptions<T>) {
-  const [data, setData] = useState<T[]>([...items]);
+export function useCrud<T extends { id: number }>({ items, itemName, storageKey, onSuccess }: UseCrudOptions<T>) {
+  // Use localStorage hook instead of useState
+  const [data, setData] = useLocalStorage<T[]>(storageKey, [...items]);
   const [editItem, setEditItem] = useState<T | null>(null);
   const [deleteItem, setDeleteItem] = useState<T | null>(null);
   const [formOpen, setFormOpen] = useState(false);

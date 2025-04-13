@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useCrud } from "@/hooks/use-crud";
 import { DataTable } from "@/components/ui/data-table";
@@ -59,6 +58,7 @@ export default function ProductionPage() {
   } = useCrud<ProductionOrder>({
     items: mockProductionOrders,
     itemName: "Production Order",
+    storageKey: "erp-production",
   });
 
   const [startDate, setStartDate] = useState<Date>(new Date());
@@ -72,7 +72,6 @@ export default function ProductionPage() {
     completed: false,
   });
 
-  // Initialize form data when editing an item
   useEffect(() => {
     if (editItem) {
       setFormData({
@@ -102,7 +101,6 @@ export default function ProductionPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Find the product name based on the selected product ID
     const selectedProduct = mockProducts.find(p => p.id === formData.productId);
     
     const orderData: ProductionOrder = {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useCrud } from "@/hooks/use-crud";
 import { DataTable } from "@/components/ui/data-table";
@@ -56,6 +55,7 @@ export default function SalesPage() {
   } = useCrud<SalesOrder>({
     items: mockSalesOrders,
     itemName: "Sales Order",
+    storageKey: "erp-sales",
   });
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -69,7 +69,6 @@ export default function SalesPage() {
     totalPrice: 0,
   });
 
-  // Initialize form data when editing an item
   useEffect(() => {
     if (editItem) {
       setFormData({
@@ -94,7 +93,6 @@ export default function SalesPage() {
     }
   }, [editItem]);
 
-  // Update total price when quantity or unit price changes
   useEffect(() => {
     if (formData.quantity && formData.unitPrice) {
       setFormData(prev => ({
