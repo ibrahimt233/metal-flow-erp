@@ -1,23 +1,31 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockPurchaseOrders, mockProductionOrders, mockSalesOrders, mockProducts } from "@/services/mockData";
 import { Package, ShoppingCart, Truck, ArrowUp, ArrowDown, DollarSign, Clock } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Link } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { mockPurchaseOrders, mockProductionOrders, mockSalesOrders, mockProducts } from "@/services/mockData";
+import { Product, PurchaseOrder, SalesOrder, ProductionOrder } from "@/types";
 
 export default function DashboardPage() {
-  // Calculate metrics
-  const totalPurchases = mockPurchaseOrders.reduce((acc, curr) => acc + curr.totalCost, 0);
-  const totalSales = mockSalesOrders.reduce((acc, curr) => acc + curr.totalPrice, 0);
-  const completedProduction = mockProductionOrders.filter(order => order.completed).length;
-  const pendingProduction = mockProductionOrders.filter(order => !order.completed).length;
+  // Use localStorage data instead of mock data
+  const [purchaseOrders] = useLocalStorage<PurchaseOrder[]>("erp-purchases", mockPurchaseOrders);
+  const [salesOrders] = useLocalStorage<SalesOrder[]>("erp-sales", mockSalesOrders);
+  const [productionOrders] = useLocalStorage<ProductionOrder[]>("erp-production", mockProductionOrders);
+  const [products] = useLocalStorage<Product[]>("erp-products", mockProducts);
+  
+  // Calculate metrics using localStorage data
+  const totalPurchases = purchaseOrders.reduce((acc, curr) => acc + curr.totalCost, 0);
+  const totalSales = salesOrders.reduce((acc, curr) => acc + curr.totalPrice, 0);
+  const completedProduction = productionOrders.filter(order => order.completed).length;
+  const pendingProduction = productionOrders.filter(order => !order.completed).length;
   
   // Format for display
   const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
   
-  // Data for charts
-  const salesData = mockSalesOrders.map(order => ({
+  // Data for charts from localStorage
+  const salesData = salesOrders.map(order => ({
     name: order.productName,
     sales: order.totalPrice,
   }));
@@ -48,7 +56,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalPurchases)}</div>
             <p className="text-xs text-muted-foreground">
-              {mockPurchaseOrders.length} orders
+              {purchaseOrders.length} orders
             </p>
           </CardContent>
         </Card>
@@ -61,7 +69,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalSales)}</div>
             <p className="text-xs text-muted-foreground">
-              {mockSalesOrders.length} orders
+              {salesOrders.length} orders
             </p>
           </CardContent>
         </Card>
@@ -95,7 +103,7 @@ export default function DashboardPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completedProduction} / {mockProductionOrders.length}</div>
+            <div className="text-2xl font-bold">{completedProduction} / {productionOrders.length}</div>
             <p className="text-xs text-muted-foreground">
               Orders completed
             </p>
@@ -182,7 +190,7 @@ export default function DashboardPage() {
           <div className="rounded-md border">
             <div className="p-4">
               <div className="space-y-3">
-                {mockProductionOrders.slice(0, 3).map((order) => (
+                {productionOrders.slice(0, 3).map((order) => (
                   <div key={order.id} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <Clock className="h-5 w-5 text-muted-foreground" />
