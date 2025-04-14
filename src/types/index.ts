@@ -41,3 +41,16 @@ export interface SalesOrder {
   unitPrice: number;
   totalPrice: number;
 }
+
+// Client Type
+export interface Client {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  address: string;
+  taxId: string;
+  notes: string;
+  active: boolean;
+}

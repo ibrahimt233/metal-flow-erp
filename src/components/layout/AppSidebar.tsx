@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import { 
   CreditCard, 
@@ -81,8 +82,8 @@ export function AppSidebar() {
 
   const secondaryItems = [
     {
-      title: "Customers",
-      url: "/customers",
+      title: "Clients",
+      url: "/clients",
       icon: Users,
     },
     {

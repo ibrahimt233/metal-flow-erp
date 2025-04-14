@@ -1,5 +1,5 @@
 
-import { PurchaseOrder, Product, ProductionOrder, SalesOrder } from "@/types";
+import { PurchaseOrder, Product, ProductionOrder, SalesOrder, Client } from "@/types";
 
 // Empty Purchase Orders
 export const mockPurchaseOrders: PurchaseOrder[] = [];
@@ -12,3 +12,6 @@ export const mockProductionOrders: ProductionOrder[] = [];
 
 // Empty Sales Orders
 export const mockSalesOrders: SalesOrder[] = [];
+
+// Empty Clients
+export const mockClients: Client[] = [];
