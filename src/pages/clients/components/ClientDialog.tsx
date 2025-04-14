@@ -86,7 +86,14 @@ export function ClientDialog({ open, onOpenChange, client, onSave }: ClientDialo
   function onSubmit(data: ClientFormValues) {
     const clientData: Client = {
       id: client?.id || 0, // Will be set by useCrud if it's a new client
-      ...data,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      company: data.company,
+      address: data.address,
+      taxId: data.taxId || "",
+      notes: data.notes || "",
+      active: data.active,
     };
     onSave(clientData);
   }
