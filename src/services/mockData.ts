@@ -4,7 +4,7 @@ import { PurchaseOrder, Product, ProductionOrder, SalesOrder } from "@/types";
 // Empty Purchase Orders
 export const mockPurchaseOrders: PurchaseOrder[] = [];
 
-// Empty Products
+// Empty Products (cleared)
 export const mockProducts: Product[] = [];
 
 // Empty Production Orders
